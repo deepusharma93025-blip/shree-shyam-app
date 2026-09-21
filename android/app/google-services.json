@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "600488623257",
+    "project_id": "shree-shyam-restaurant",
+    "storage_bucket": "shree-shyam-restaurant.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:600488623257:android:5409c44e56cc476a408c08",
+        "android_client_info": {
+          "package_name": "com.shreeshyam.restaurant"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD4kdlqUoWkcwU-nqgHAhQNjgYJ-ccBMH8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
