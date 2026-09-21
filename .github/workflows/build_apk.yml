@@ -58,6 +58,11 @@ jobs:
             sed -i '/plugins {/a \    id "com.google.gms.google-services" version "4.4.1" apply false' android/settings.gradle
           fi
 
+      - name: Generate App Icons
+        run: |
+          flutter pub get
+          dart run flutter_launcher_icons
+
       - name: Build APK
         run: flutter build apk --release
 
