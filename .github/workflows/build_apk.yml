@@ -9,12 +9,13 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-      - name: Set up Java
+      - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
-          distribution: 'zulu'
+          distribution: 'temurin'
           java-version: '17'
 
       - name: Set up Flutter
@@ -23,8 +24,32 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Get Dependencies
-        run: flutter pub get
+      - name: Recreate Android Project with Native Tooling
+        run: |
+          mkdir -p temp_backup
+          cp -r lib temp_backup/
+          cp -r android/app/google-services.json temp_backup/ 2>/dev/null || true
+          
+          rm -rf android pubspec.yaml pubspec.lock test
+          flutter create --org com.shreeshyam --project-name shree_shyam_restaurant .
+          
+          rm -rf lib
+          cp -r temp_backup/lib lib
+          
+          flutter pub add firebase_core cloud_firestore url_launcher cupertino_icons
+          
+          # Android setup
+          cp temp_backup/google-services.json android/app/google-services.json
+          
+          # Add Google Services plugin to app build.gradle
+          sed -i '/id "dev.flutter.flutter-gradle-plugin"/a \    id "com.google.gms.google-services"' android/app/build.gradle || true
+          sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 21/g' android/app/build.gradle || true
+          sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 21/g' android/app/build.gradle || true
+          
+          # Add Google Services classpath to settings.gradle or build.gradle
+          if grep -q "pluginManagement" android/settings.gradle; then
+            sed -i '/plugins {/a \    id "com.google.gms.google-services" version "4.4.1" apply false' android/settings.gradle
+          fi
 
       - name: Build APK
         run: flutter build apk --release
