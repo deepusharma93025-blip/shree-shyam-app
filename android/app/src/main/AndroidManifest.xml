@@ -1,7 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET"/>
     <application
-        android:label="Jai Shree Shyam"
+        android:label="Shree Shyam Restaurant"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
