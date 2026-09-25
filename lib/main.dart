@@ -151,6 +151,37 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
         ),
         actions: [
           IconButton(
+            icon: const Icon(Icons.location_on, color: Color(0xFFFC8019), size: 26),
+            tooltip: 'Track Live Order',
+            onPressed: () {
+              final idCtrl = TextEditingController();
+              showDialog(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Track Your Order'),
+                  content: TextField(
+                    controller: idCtrl,
+                    decoration: const InputDecoration(hintText: 'Enter Order ID (e.g. SS-963714)'),
+                  ),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFC8019), foregroundColor: Colors.white),
+                      onPressed: () {
+                        if (idCtrl.text.trim().isNotEmpty) {
+                          final cleanId = idCtrl.text.trim().replaceAll('#', '');
+                          Navigator.pop(ctx);
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => CustomerTrackingScreen(orderDocId: cleanId)));
+                        }
+                      },
+                      child: const Text('Track Live'),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.delivery_dining, color: Color(0xFF60B244), size: 28),
             tooltip: 'Rider Portal',
             onPressed: () => _openRiderLogin(context),
