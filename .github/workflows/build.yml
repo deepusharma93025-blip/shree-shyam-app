@@ -1,0 +1,54 @@
+name: Build APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.0'
+          channel: 'stable'
+
+      - name: Inject Full Code and Logo
+        run: |
+          # 1. Download full verified main.dart directly on GitHub Runner
+          curl -sL "https://raw.githubusercontent.com/Deepusharma93025-blip/shree-shyam-app/bd92202b8813fa2a4f475f463d1a890473950efd/lib/main.dart" -o lib/main.dart
+          
+          # 2. Inject Custom Logo
+          if [ -f "app_logo.png" ]; then
+            sudo apt-get update && sudo apt-get install -y imagemagick
+            for res in "mipmap-mdpi 48x48" "mipmap-hdpi 72x72" "mipmap-xhdpi 96x96" "mipmap-xxhdpi 144x144" "mipmap-xxxhdpi 192x192"; do
+              set -- $res
+              mkdir -p android/app/src/main/res/$1
+              convert app_logo.png -resize $2 android/app/src/main/res/$1/ic_launcher.png
+              convert app_logo.png -resize $2 android/app/src/main/res/$1/ic_launcher_foreground.png
+            done
+          fi
+
+      - name: Clean & Get Packages
+        run: |
+          flutter clean
+          flutter pub get
+
+      - name: Build APK
+        run: flutter build apk --release
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v3
+        with:
+          name: app-release
+          path: build/app/outputs/flutter-apk/app-release.apk
