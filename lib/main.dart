@@ -119,9 +119,14 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
         ),
         actions: [
           IconButton(
+            icon: const Icon(Icons.delivery_dining, color: Color(0xFF60B244), size: 28),
+            tooltip: 'Rider Portal',
+            onPressed: () => _openRiderLogin(context),
+          ),
+          IconButton(
             icon: const Icon(Icons.admin_panel_settings_outlined),
             onPressed: () => _openAdminLogin(context),
-          )
+          ),
         ],
       ),
       body: Stack(
