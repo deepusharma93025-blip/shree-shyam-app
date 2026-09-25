@@ -118,8 +118,6 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
             label: 'Table Book',
           ),
           const NavigationDestination(
-            icon: Icon(Icons.delivery_dining_outlined),
-            label: 'Orders',
           ),
         ],
       ),
@@ -577,7 +575,16 @@ class OrdersTrackScreen extends StatelessWidget {
               return Card(
                 child: ListTile(
                   title: Text('${d['orderId']} • ₹${d['totalAmount']}'),
-                  subtitle: Text('Status: ${d['status']} | ${d['customerName']}'),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Status: ${data["status"] ?? "Pending"} | Total: ₹${data["total"] ?? 0}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
+                    const SizedBox(height: 4),
+                    Text('Phone: ${data["phone"] ?? "N/A"} | Note: ${data["address"] ?? ""}', style: const TextStyle(fontSize: 12)),
+                    const SizedBox(height: 4),
+                    Text('Items: ' + ((data['items'] as List?)?.map((i) => "${i['name']} x${i['qty']}").join(', ') ?? 'Nahi mila'), style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.brown)),
+                  ],
+                ),
                 ),
               );
             },
@@ -715,7 +722,16 @@ class AdminDashboardScreen extends StatelessWidget {
                     return Card(
                       child: ListTile(
                         title: Text('${d['orderId']} • ${d['customerName']}'),
-                        subtitle: Text('Status: ${d['status']} | ₹${d['totalAmount']}'),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Status: ${data["status"] ?? "Pending"} | Total: ₹${data["total"] ?? 0}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
+                    const SizedBox(height: 4),
+                    Text('Phone: ${data["phone"] ?? "N/A"} | Note: ${data["address"] ?? ""}', style: const TextStyle(fontSize: 12)),
+                    const SizedBox(height: 4),
+                    Text('Items: ' + ((data['items'] as List?)?.map((i) => "${i['name']} x${i['qty']}").join(', ') ?? 'Nahi mila'), style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.brown)),
+                  ],
+                ),
                         trailing: PopupMenuButton<String>(
                           onSelected: (st) => updateOrderStatus(doc.id, st),
                           itemBuilder: (_) => const [
