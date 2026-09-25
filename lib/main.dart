@@ -23,7 +23,7 @@ class ShreeShyamApp extends StatelessWidget {
           secondary: const Color(0xFF60B244),
         ),
       ),
-      home: const MainHomeScreen(),
+      home: MainHomeScreen(),
     );
   }
 }
