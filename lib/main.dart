@@ -95,7 +95,7 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
             onPressed: () {
               if (pinCtrl.text.trim() == '5678') {
                 Navigator.pop(ctx);
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const RiderDashboardScreen()));
+                Navigator.push(context, MaterialPageRoute(builder: (_) => RiderDashboardScreen()));
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Invalid Rider PIN!')));
               }
