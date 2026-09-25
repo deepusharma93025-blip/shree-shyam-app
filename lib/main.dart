@@ -90,7 +90,7 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
         onGoToTrack: () => setState(() => _currentIndex = 3),
       ),
       const TableBookingScreen(),
-      const OrdersTrackScreen(),
+      
     ];
 
     final totalCartCount = cart.values.fold(0, (sum, item) => sum + (item['qty'] as int));
@@ -117,10 +117,7 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
             icon: Icon(Icons.table_restaurant_outlined),
             label: 'Table Book',
           ),
-          const NavigationDestination(
-            icon: Icon(Icons.delivery_dining_outlined),
-            label: 'Orders',
-          ),
+
         ],
       ),
     );
