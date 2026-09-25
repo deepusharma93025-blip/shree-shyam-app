@@ -1,3 +1,4 @@
+import 'package:geolocator/geolocator.dart';
 import 'tracking_screen.dart';
 import 'rider_screen.dart';
 import 'package:flutter/material.dart';
@@ -405,6 +406,37 @@ class _CartScreenState extends State<CartScreen> {
   final _nameCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   final _addrCtrl = TextEditingController();
+  double? _custLat;
+  double? _custLng;
+  bool _fetchingLocation = false;
+
+  Future<void> _getCurrentLocation() async {
+    setState(() => _fetchingLocation = true);
+    try {
+      LocationPermission perm = await Geolocator.checkPermission();
+      if (perm == LocationPermission.denied) {
+        perm = await Geolocator.requestPermission();
+      }
+      if (perm == LocationPermission.deniedForever || perm == LocationPermission.denied) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('GPS permission allow kijiye')));
+        setState(() => _fetchingLocation = false);
+        return;
+      }
+      Position pos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+      setState(() {
+        _custLat = pos.latitude;
+        _custLng = pos.longitude;
+        if (_addrCtrl.text.isEmpty) {
+          _addrCtrl.text = 'GPS: ' + pos.latitude.toStringAsFixed(5) + ', ' + pos.longitude.toStringAsFixed(5);
+        }
+        _fetchingLocation = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('✅ Live GPS Location fetch ho gayi!')));
+    } catch (e) {
+      setState(() => _fetchingLocation = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('GPS Error: ' + e.toString())));
+    }
+  }
   String _paymentMode = 'Cash on Delivery';
   bool _isOrdering = false;
 
