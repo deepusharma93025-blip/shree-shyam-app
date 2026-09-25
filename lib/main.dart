@@ -75,22 +75,10 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final screens = [
-      MenuScreen(
-        cart: cart,
-        onAdd: addToCart,
-        onRemove: removeFromCart,
-        onGoToCart: () => setState(() => _currentIndex = 1),
-      ),
-      CartScreen(
-        cart: cart,
-        onAdd: addToCart,
-        onRemove: removeFromCart,
-        onClear: clearCart,
-        onGoToTrack: () => setState(() => _currentIndex = 3),
-      ),
+        final screens = [
+      MenuScreen(onAddToCart: addToCart),
+      CartScreen(cart: cart, onClear: clearCart),
       const TableBookingScreen(),
-      const OrdersTrackScreen(),
     ];
 
     final totalCartCount = cart.values.fold(0, (sum, item) => sum + (item['qty'] as int));
@@ -575,17 +563,7 @@ class OrdersTrackScreen extends StatelessWidget {
               return Card(
                 child: ListTile(
                   title: Text('${d['orderId']} • ₹${d['totalAmount']}'),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Status: ${data["status"] ?? "Pending"} | Total: ₹${data["total"] ?? 0}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
-                    const SizedBox(height: 4),
-                    Text('Phone: ${data["phone"] ?? "N/A"} | Note: ${data["address"] ?? ""}', style: const TextStyle(fontSize: 12)),
-                    const SizedBox(height: 4),
-                    Text('Items: ' + ((data['items'] as List?)?.map((i) => "${i['name']} x${i['qty']}").join(', ') ?? 'Nahi mila'), style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.brown)),
-                  ],
-                ),
-                ),
+                subtitle: Text('Status: ${data["status"]} | Total: ₹${data["total"]}'),
               );
             },
           );
@@ -722,25 +700,7 @@ class AdminDashboardScreen extends StatelessWidget {
                     return Card(
                       child: ListTile(
                         title: Text('${d['orderId']} • ${d['customerName']}'),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Status: ${data["status"] ?? "Pending"} | Total: ₹${data["total"] ?? 0}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
-                    const SizedBox(height: 4),
-                    Text('Phone: ${data["phone"] ?? "N/A"} | Note: ${data["address"] ?? ""}', style: const TextStyle(fontSize: 12)),
-                    const SizedBox(height: 4),
-                    Text('Items: ' + ((data['items'] as List?)?.map((i) => "${i['name']} x${i['qty']}").join(', ') ?? 'Nahi mila'), style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.brown)),
-                  ],
-                ),
-                        trailing: PopupMenuButton<String>(
-                          onSelected: (st) => updateOrderStatus(doc.id, st),
-                          itemBuilder: (_) => const [
-                            PopupMenuItem(value: 'Preparing', child: Text('🍳 Cooking')),
-                            PopupMenuItem(value: 'Ready / Out', child: Text('📦 Out')),
-                            PopupMenuItem(value: 'Delivered', child: Text('✅ Delivered')),
-                          ],
-                        ),
-                      ),
+                subtitle: Text('Status: ${data["status"]} | Total: ₹${data["total"]}'),
                     );
                   },
                 );
