@@ -81,12 +81,12 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Rider Delivery Portal (PIN: 5678)'),
+        title: const Text('Delivery Partner Login'),
         content: TextField(
           controller: pinCtrl,
           keyboardType: TextInputType.number,
           obscureText: true,
-          decoration: const InputDecoration(hintText: 'Enter Rider PIN'),
+          decoration: const InputDecoration(hintText: 'Enter Secret PIN'),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
@@ -117,7 +117,7 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
           controller: pinCtrl,
           keyboardType: TextInputType.number,
           obscureText: true,
-          decoration: const InputDecoration(hintText: 'Enter 4-digit PIN'),
+          decoration: const InputDecoration(hintText: 'Enter Secret PIN'),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
