@@ -4,16 +4,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  try {
-    await Firebase.initializeApp();
-  } catch (e) {
-    debugPrint("Firebase: $e");
-  }
-  runApp(const RestaurantApp());
+  await Firebase.initializeApp();
+  runApp(const ShreeShyamApp());
 }
 
-class RestaurantApp extends StatelessWidget {
-  const RestaurantApp({super.key});
+class ShreeShyamApp extends StatelessWidget {
+  const ShreeShyamApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -22,12 +18,18 @@ class RestaurantApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
-        primaryColor: const Color(0xFFFC8019),
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFFFC8019), primary: const Color(0xFFFC8019), secondary: const Color(0xFF60B244),
+          seedColor: const Color(0xFFFC8019),
           primary: const Color(0xFFFC8019),
+          secondary: const Color(0xFF60B244),
+          surface: Colors.white,
         ),
-        scaffoldBackgroundColor: const Color(0xFFF6F7F9),
+        scaffoldBackgroundColor: const Color(0xFFF4F5F7),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.white,
+          foregroundColor: Color(0xFF282C3F),
+          elevation: 0,
+        ),
       ),
       home: const MainHomeScreen(),
     );
@@ -43,81 +45,139 @@ class MainHomeScreen extends StatefulWidget {
 
 class _MainHomeScreenState extends State<MainHomeScreen> {
   int _currentIndex = 0;
-  final Map<String, Map<String, dynamic>> cart = {};
+  final Map<String, Map<String, dynamic>> _cart = {};
 
-  void addToCart(String id, String name, int price) {
+  void _addToCart(String id, String name, int price) {
     setState(() {
-      if (cart.containsKey(id)) {
-        cart[id]!['qty'] = (cart[id]!['qty'] as int) + 1;
+      if (_cart.containsKey(id)) {
+        _cart[id]!['qty'] = (_cart[id]!['qty'] as int) + 1;
       } else {
-        cart[id] = {'id': id, 'name': name, 'price': price, 'qty': 1};
+        _cart[id] = {'name': name, 'price': price, 'qty': 1};
       }
     });
   }
 
-  void removeFromCart(String id) {
+  void _removeFromCart(String id) {
     setState(() {
-      if (cart.containsKey(id)) {
-        if ((cart[id]!['qty'] as int) > 1) {
-          cart[id]!['qty'] = (cart[id]!['qty'] as int) - 1;
+      if (_cart.containsKey(id)) {
+        int q = _cart[id]!['qty'] as int;
+        if (q > 1) {
+          _cart[id]!['qty'] = q - 1;
         } else {
-          cart.remove(id);
+          _cart.remove(id);
         }
       }
     });
   }
 
-  void clearCart() {
-    setState(() {
-      cart.clear();
-    });
+  int get _cartTotal => _cart.values.fold(0, (sum, item) => sum + ((item['price'] as int) * (item['qty'] as int)));
+  int get _cartCount => _cart.values.fold(0, (sum, item) => sum + (item['qty'] as int));
+
+  void _openAdminLogin(BuildContext context) {
+    final pinCtrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Admin Access', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: TextField(
+          controller: pinCtrl,
+          keyboardType: TextInputType.number,
+          obscureText: true,
+          decoration: const InputDecoration(hintText: 'Enter 4-digit PIN'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFC8019), foregroundColor: Colors.white),
+            onPressed: () {
+              if (pinCtrl.text.trim() == '1234') {
+                Navigator.pop(ctx);
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminDashboardScreen()));
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Invalid PIN!')));
+              }
+            },
+            child: const Text('Login'),
+          )
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final screens = [
-      MenuScreen(
-        cart: cart,
-        onAdd: addToCart,
-        onRemove: removeFromCart,
-        onGoToCart: () => setState(() => _currentIndex = 1),
-      ),
-      CartScreen(
-        cart: cart,
-        onAdd: addToCart,
-        onRemove: removeFromCart,
-        onClear: clearCart,
-        onGoToTrack: () => setState(() => _currentIndex = 3),
-      ),
-      const TableBookingScreen(),
-      
-    ];
-
-    final totalCartCount = cart.values.fold(0, (sum, item) => sum + (item['qty'] as int));
-
     return Scaffold(
-      body: screens[_currentIndex],
+      appBar: AppBar(
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: const [
+            Text('Jai Shree Shyam Restaurant', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Color(0xFF282C3F))),
+            Text('Pure Veg Bhojanalaya', style: TextStyle(fontSize: 11, color: Colors.grey)),
+          ],
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.admin_panel_settings_outlined),
+            onPressed: () => _openAdminLogin(context),
+          )
+        ],
+      ),
+      body: Stack(
+        children: [
+          _currentIndex == 0
+              ? MenuScreen(cart: _cart, onAdd: _addToCart, onRemove: _removeFromCart)
+              : CartScreen(
+                  cart: _cart,
+                  onAdd: _addToCart,
+                  onRemove: _removeFromCart,
+                  onClear: () => setState(() => _cart.clear()),
+                ),
+          if (_cartCount > 0 && _currentIndex == 0)
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: 16,
+              child: GestureDetector(
+                onTap: () => setState(() => _currentIndex = 1),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF60B244),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 8)],
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('$_cartCount Items | ₹$_cartTotal', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                      const Row(
+                        children: [
+                          Text('View Cart', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          SizedBox(width: 4),
+                          Icon(Icons.arrow_forward_ios, size: 14, color: Colors.white),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
-        onDestinationSelected: (idx) => setState(() => _currentIndex = idx),
+        onDestinationSelected: (i) => setState(() => _currentIndex = i),
+        backgroundColor: Colors.white,
         destinations: [
-          const NavigationDestination(
-            icon: Icon(Icons.restaurant_menu),
-            label: 'Menu',
-          ),
+          const NavigationDestination(icon: Icon(Icons.restaurant_menu), label: 'Menu'),
           NavigationDestination(
             icon: Badge(
-              isLabelVisible: totalCartCount > 0,
-              label: Text('$totalCartCount'),
-              child: const Icon(Icons.shopping_bag_outlined),
+              label: Text('$_cartCount'),
+              isLabelVisible: _cartCount > 0,
+              child: const Icon(Icons.shopping_cart_outlined),
             ),
             label: 'Cart',
           ),
-          const NavigationDestination(
-            icon: Icon(Icons.table_restaurant_outlined),
-            label: 'Table Book',
-          ),
-
         ],
       ),
     );
@@ -128,223 +188,133 @@ class MenuScreen extends StatefulWidget {
   final Map<String, Map<String, dynamic>> cart;
   final Function(String, String, int) onAdd;
   final Function(String) onRemove;
-  final VoidCallback onGoToCart;
 
-  const MenuScreen({
-    super.key,
-    required this.cart,
-    required this.onAdd,
-    required this.onRemove,
-    required this.onGoToCart,
-  });
+  const MenuScreen({super.key, required this.cart, required this.onAdd, required this.onRemove});
 
   @override
   State<MenuScreen> createState() => _MenuScreenState();
 }
 
 class _MenuScreenState extends State<MenuScreen> {
-  String selectedCategory = 'All';
-
-  final List<String> categories = [
-    'All',
-    'Sabzi',
-    'Chawal',
-    'Roti / Paratha',
-    'Papad',
-    'Chai',
-    'Pey Padarth'
-  ];
-
-  void openAdminLogin(BuildContext context) {
-    final pinController = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Admin Access PIN'),
-        content: TextField(
-          controller: pinController,
-          keyboardType: TextInputType.number,
-          obscureText: true,
-          decoration: const InputDecoration(
-            hintText: 'PIN darj karein (Default: 1234)',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFC8019)),
-            onPressed: () {
-              if (pinController.text.trim() == '1234') {
-                Navigator.pop(ctx);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
-                );
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Galat PIN! Sahi PIN dalein.')),
-                );
-              }
-            },
-            child: const Text('Login', style: TextStyle(color: Colors.white)),
-          )
-        ],
-      ),
-    );
-  }
+  String _selectedCategory = 'All';
 
   @override
   Widget build(BuildContext context) {
-    final totalCartCount = cart.values.fold(0, (sum, item) => sum + (item['qty'] as int));
-
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFFC8019),
-        title: const Text(
-          'Jai Shree Shyam Restaurant',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.admin_panel_settings, color: Colors.white),
-            tooltip: 'Admin Panel',
-            onPressed: () => openAdminLogin(context),
-          )
-        ],
-      ),
-      body: Column(
-        children: [
-          Container(
-            color: Colors.white,
-            height: 52,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              itemCount: categories.length,
-              itemBuilder: (context, index) {
-                final cat = categories[index];
-                final isSelected = selectedCategory == cat;
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: FilterChip(
-                    selected: isSelected,
-                    label: Text(
-                      cat,
-                      style: TextStyle(
-                        color: isSelected ? Colors.white : Colors.black87,
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                      ),
+    return Column(
+      children: [
+        StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance.collection('menu').snapshots(),
+          builder: (context, snapshot) {
+            final docs = snapshot.data?.docs ?? [];
+            final cats = <String>{'All'};
+            for (var d in docs) {
+              final cat = (d.data() as Map<String, dynamic>)['category'] as String?;
+              if (cat != null && cat.isNotEmpty) cats.add(cat);
+            }
+            return Container(
+              color: Colors.white,
+              height: 46,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                children: cats.map((c) {
+                  final isSel = c == _selectedCategory;
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: ChoiceChip(
+                      label: Text(c),
+                      selected: isSel,
+                      selectedColor: const Color(0xFFFC8019),
+                      labelStyle: TextStyle(color: isSel ? Colors.white : Colors.black87),
+                      onSelected: (val) {
+                        if (val) setState(() => _selectedCategory = c);
+                      },
                     ),
-                    selectedColor: const Color(0xFFFC8019),
-                    backgroundColor: const Color(0xFFF1F3F5),
-                    onSelected: (val) => setState(() => selectedCategory = cat),
-                  ),
-                );
-              },
-            ),
-          ),
-          Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance.collection('menu').snapshots(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator(color: Color(0xFFFC8019)));
-                }
+                  );
+                }).toList(),
+              ),
+            );
+          },
+        ),
+        Expanded(
+          child: StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance.collection('menu').snapshots(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+              final docs = snapshot.data!.docs;
+              final list = docs.where((d) {
+                if (_selectedCategory == 'All') return true;
+                return (d.data() as Map<String, dynamic>)['category'] == _selectedCategory;
+              }).toList();
 
-                final docs = snapshot.data!.docs;
-                final filtered = docs.where((doc) {
+              if (list.isEmpty) return const Center(child: Text('Abhi koi dish uplabdh nahi hai'));
+
+              return ListView.separated(
+                padding: const EdgeInsets.only(left: 14, right: 14, top: 12, bottom: 80),
+                itemCount: list.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 10),
+                itemBuilder: (context, index) {
+                  final doc = list[index];
                   final data = doc.data() as Map<String, dynamic>;
-                  if (selectedCategory == 'All') return true;
-                  return (data['category'] ?? '').toString().trim().toLowerCase() == selectedCategory.trim().toLowerCase();
-                }).toList();
+                  final id = doc.id;
+                  final name = data['name'] ?? 'Dish';
+                  final price = (data['price'] ?? 0) as int;
+                  final qty = (widget.cart[id]?['qty'] ?? 0) as int;
 
-                return ListView.separated(
-                  padding: const EdgeInsets.all(12),
-                  itemCount: filtered.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 10),
-                  itemBuilder: (context, index) {
-                    final doc = filtered[index];
-                    final data = doc.data() as Map<String, dynamic>;
-                    final name = data['name'] ?? 'Item';
-                    final price = (data['price'] ?? 0) is int ? data['price'] : int.tryParse(data['price'].toString()) ?? 0;
-                    final cat = data['category'] ?? '';
-                    final count = cart[doc.id]?['qty'] ?? 0;
-
-                    return Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 4, offset: const Offset(0, 2))
-                        ],
-                      ),
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(3),
-                            decoration: BoxDecoration(
-                              border: Border.all(color: const Color(0xFF0F8A65), width: 1.5),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: const Icon(Icons.circle, color: Color(0xFF0F8A65), size: 10),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                                const SizedBox(height: 4),
-                                Text('₹$price  •  $cat', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFFC8019))),
-                              ],
-                            ),
-                          ),
-                          count == 0
-                              ? ElevatedButton(
-                                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFC8019)),
-                                  onPressed: () => widget.onAdd(doc.id, name, price),
-                                  child: const Text('ADD', style: TextStyle(color: Colors.white)),
-                                )
-                              : Row(
-                                  mainAxisSize: MainAxisSize.min,
+                  return Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(Icons.circle, size: 10, color: Color(0xFF0F8A65)),
+                            const SizedBox(height: 4),
+                            Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                            Text('₹$price', style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.grey)),
+                          ],
+                        ),
+                        qty == 0
+                            ? OutlinedButton(
+                                style: OutlinedButton.styleFrom(
+                                  side: const BorderSide(color: Color(0xFF60B244)),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
+                                onPressed: () => widget.onAdd(id, name, price),
+                                child: const Text('ADD', style: TextStyle(color: Color(0xFF60B244), fontWeight: FontWeight.bold)),
+                              )
+                            : Container(
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: const Color(0xFF60B244)),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
                                   children: [
                                     IconButton(
-                                      icon: const Icon(Icons.remove_circle, color: Color(0xFFFC8019)),
-                                      onPressed: () => widget.onRemove(doc.id),
+                                      iconSize: 16,
+                                      icon: const Icon(Icons.remove, color: Color(0xFF60B244)),
+                                      onPressed: () => widget.onRemove(id),
                                     ),
-                                    Text('$count', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                    Text('$qty', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF60B244))),
                                     IconButton(
-                                      icon: const Icon(Icons.add_circle, color: Color(0xFFFC8019)),
-                                      onPressed: () => widget.onAdd(doc.id, name, price),
+                                      iconSize: 16,
+                                      icon: const Icon(Icons.add, color: Color(0xFF60B244)),
+                                      onPressed: () => widget.onAdd(id, name, price),
                                     ),
                                   ],
                                 ),
-                        ],
-                      ),
-                    );
-                  },
-                );
-              },
-            ),
+                              ),
+                      ],
+                    ),
+                  );
+                },
+              );
+            },
           ),
-        ],
-      ),
-      bottomNavigationBar: totalCartCount > 0
-          ? Container(
-              padding: const EdgeInsets.all(12),
-              color: Colors.white,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFC8019),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-                onPressed: widget.onGoToCart,
-                child: Text('View Cart ($totalCartCount items)', style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-              ),
-            )
-          : null,
+        ),
+      ],
     );
   }
 }
@@ -354,235 +324,261 @@ class CartScreen extends StatefulWidget {
   final Function(String, String, int) onAdd;
   final Function(String) onRemove;
   final VoidCallback onClear;
-  final VoidCallback onGoToTrack;
 
-  const CartScreen({
-    super.key,
-    required this.cart,
-    required this.onAdd,
-    required this.onRemove,
-    required this.onClear,
-    required this.onGoToTrack,
-  });
+  const CartScreen({super.key, required this.cart, required this.onAdd, required this.onRemove, required this.onClear});
 
   @override
   State<CartScreen> createState() => _CartScreenState();
 }
 
 class _CartScreenState extends State<CartScreen> {
-  String _paymentMethod = 'Cash on Delivery'; // COD or Online UPI
+  final _nameCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
+  final _addrCtrl = TextEditingController();
+  String _paymentMode = 'Cash on Delivery';
+  bool _isOrdering = false;
 
-  final nameCtrl = TextEditingController();
-  final phoneCtrl = TextEditingController();
-  final addressCtrl = TextEditingController();
-  bool isPlacing = false;
+  int get _total => widget.cart.values.fold(0, (sum, i) => sum + ((i['price'] as int) * (i['qty'] as int)));
 
-  int calculateTotal() {
-    return cart.values.fold(0, (sum, item) => sum + ((item['price'] as int) * (item['qty'] as int)));
-  }
-
-  void placeOrder() async {
-    if (nameCtrl.text.trim().isEmpty || phoneCtrl.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Naam aur Phone Number bharein!')));
+  void _confirmOrder() {
+    if (_nameCtrl.text.trim().isEmpty || _phoneCtrl.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Kripya Name aur Phone bharein')));
       return;
     }
-    setState(() => isPlacing = true);
+
+    if (_paymentMode == 'Online UPI') {
+      final upiUrl = 'upi://pay?pa=9302578837-9@axl&pn=ShreeShyam&am=$_total&cu=INR&tn=FoodOrder';
+      final qr = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${Uri.encodeComponent(upiUrl)}';
+
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.white,
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+        builder: (ctx) => Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Scan & Pay via UPI', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 6),
+              Text('Total Payable: ₹$_total', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF60B244))),
+              const SizedBox(height: 12),
+              Image.network(qr, height: 180, width: 180),
+              const SizedBox(height: 8),
+              const Text('UPI ID: 9302578837-9@axl', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFC8019), foregroundColor: Colors.white),
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    _saveOrderToFirebase();
+                  },
+                  child: const Text('I Have Completed Payment'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+      return;
+    }
+
+    _saveOrderToFirebase();
+  }
+
+  void _saveOrderToFirebase() async {
+    setState(() => _isOrdering = true);
+    final orderId = 'SS-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
 
     try {
-      final itemsList = cart.values.map((e) => {
-        'name': e['name'],
-        'price': e['price'],
-        'qty': e['qty'],
-      }).toList();
-
-      final orderId = '#SS-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
-
       await FirebaseFirestore.instance.collection('orders').add({
         'orderId': orderId,
-        'customerName': nameCtrl.text.trim(),
-        'phone': phoneCtrl.text.trim(),
-        'address': addressCtrl.text.trim(),
-        'items': itemsList,
-        'totalAmount': calculateTotal(),
-        'status': 'Received',
+        'customerName': _nameCtrl.text.trim(),
+        'phone': _phoneCtrl.text.trim(),
+        'address': _addrCtrl.text.trim(),
+        'paymentMethod': _paymentMode,
+        'total': _total,
+        'status': 'Pending',
         'createdAt': FieldValue.serverTimestamp(),
+        'items': widget.cart.values.map((i) => {'name': i['name'], 'qty': i['qty'], 'price': i['price']}).toList(),
       });
 
-      widget.onClear();
-      setState(() => isPlacing = false);
-      widget.onGoToTrack();
-    } catch (e) {
-      setState(() => isPlacing = false);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Order error: $e')));
-    }
-  }
+      setState(() => _isOrdering = false);
+      if (!mounted) return;
 
-  @override
-  Widget build(BuildContext context) {
-    if (cart.isEmpty) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Your Cart', style: TextStyle(color: Colors.white)), backgroundColor: const Color(0xFFFC8019)),
-        body: const Center(child: Text('Aapka cart khali hai.')),
-      );
-    }
-
-    final total = calculateTotal();
-
-    return Scaffold(
-      appBar: AppBar(title: const Text('Checkout Cart', style: TextStyle(color: Colors.white)), backgroundColor: const Color(0xFFFC8019)),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            ...cart.values.map((item) {
-              return Card(
-                child: ListTile(
-                  title: Text(item['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text('₹${item['price']} x ${item['qty']} = ₹${item['price'] * item['qty']}'),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(icon: const Icon(Icons.remove, color: Colors.red), onPressed: () => widget.onRemove(item['id'])),
-                      Text('${item['qty']}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                      IconButton(icon: const Icon(Icons.add, color: Colors.green), onPressed: () => widget.onAdd(item['id'], item['name'], item['price'])),
-                    ],
-                  ),
-                ),
-              );
-            }),
-            const SizedBox(height: 16),
-            TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Aapka Naam *', border: OutlineInputBorder())),
-            const SizedBox(height: 10),
-            TextField(controller: phoneCtrl, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'Mobile Number *', border: OutlineInputBorder())),
-            const SizedBox(height: 10),
-            TextField(controller: addressCtrl, decoration: const InputDecoration(labelText: 'Address / Table Number', border: OutlineInputBorder())),
-            const SizedBox(height: 20),
-            Text('Total: ₹$total', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFFFC8019))),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFC8019)),
-                onPressed: isPlacing ? null : placeOrder,
-                child: isPlacing
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text('Confirm Order', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-              ),
-            )
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class TableBookingScreen extends StatefulWidget {
-  const TableBookingScreen({super.key});
-
-  @override
-  State<TableBookingScreen> createState() => _TableBookingScreenState();
-}
-
-class _TableBookingScreenState extends State<TableBookingScreen> {
-  final nameCtrl = TextEditingController();
-  final phoneCtrl = TextEditingController();
-  int guests = 2;
-  bool isBooking = false;
-
-  void bookTable() async {
-    if (nameCtrl.text.trim().isEmpty || phoneCtrl.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Naam aur Phone darj karein!')));
-      return;
-    }
-    setState(() => isBooking = true);
-    try {
-      await FirebaseFirestore.instance.collection('table_bookings').add({
-        'customerName': nameCtrl.text.trim(),
-        'phone': phoneCtrl.text.trim(),
-        'guests': guests,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
-      setState(() => isBooking = false);
-      nameCtrl.clear();
-      phoneCtrl.clear();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Table Booked Successfully!')));
-      }
-    } catch (e) {
-      setState(() => isBooking = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Table Booking', style: TextStyle(color: Colors.white)), backgroundColor: const Color(0xFFFC8019)),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Aapka Naam *', border: OutlineInputBorder())),
-            const SizedBox(height: 12),
-            TextField(controller: phoneCtrl, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'Mobile Number *', border: OutlineInputBorder())),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Row(
+            children: [
+              Icon(Icons.check_circle, color: Color(0xFF60B244)),
+              SizedBox(width: 8),
+              Text('Order Receipt', style: TextStyle(fontWeight: FontWeight.bold)),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('Guests:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                DropdownButton<int>(
-                  value: guests,
-                  items: [1, 2, 4, 6, 8, 10].map((e) => DropdownMenuItem(value: e, child: Text('$e Persons'))).toList(),
-                  onChanged: (v) => setState(() => guests = v ?? 2),
+                const Center(child: Text('Jai Shree Shyam Restaurant', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFFFC8019)))),
+                const Divider(),
+                Text('Order ID: #$orderId', style: const TextStyle(fontWeight: FontWeight.bold)),
+                Text('Customer: ${_nameCtrl.text.trim()}'),
+                Text('Mobile: ${_phoneCtrl.text.trim()}'),
+                if (_addrCtrl.text.trim().isNotEmpty) Text('Table/Note: ${_addrCtrl.text.trim()}'),
+                Text('Payment: $_paymentMode', style: const TextStyle(fontWeight: FontWeight.bold)),
+                const Divider(),
+                const Text('Items Ordered:', style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                ...widget.cart.values.map((item) {
+                  final q = item['qty'] as int;
+                  final p = item['price'] as int;
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('${item['name']} x$q'),
+                      Text('₹${p * q}'),
+                    ],
+                  );
+                }),
+                const Divider(),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Total Paid:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    Text('₹$_total', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFFFC8019))),
+                  ],
                 ),
+                const SizedBox(height: 10),
+                const Center(child: Text('Receipt ka screenshot le lein!', style: TextStyle(fontSize: 11, color: Colors.grey))),
               ],
             ),
-                        const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFC8019)),
-                onPressed: isBooking ? null : bookTable,
-                child: const Text('Book Table', style: TextStyle(color: Colors.white, fontSize: 16)),
-              ),
+          ),
+          actions: [
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFC8019), foregroundColor: Colors.white),
+              onPressed: () {
+                Navigator.pop(ctx);
+                widget.onClear();
+                _nameCtrl.clear();
+                _phoneCtrl.clear();
+                _addrCtrl.clear();
+              },
+              child: const Text('OK Done'),
             )
           ],
         ),
-      ),
-    );
+      );
+    } catch (e) {
+      setState(() => _isOrdering = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+    }
   }
-}
-
-class OrdersTrackScreen extends StatelessWidget {
-  const OrdersTrackScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Live Orders', style: TextStyle(color: Colors.white)), backgroundColor: const Color(0xFFFC8019)),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('orders').orderBy('createdAt', descending: true).snapshots(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-          final orders = snapshot.data!.docs;
-          if (orders.isEmpty) return const Center(child: Text('Abhi koi order nahi hai.'));
+    if (widget.cart.isEmpty) {
+      return const Center(child: Text('Aapka cart khali hai. Menu se dish add karein.'));
+    }
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(12),
-            itemCount: orders.length,
-            itemBuilder: (context, index) {
-              final d = orders[index].data() as Map<String, dynamic>;
-              return Card(
-                child: ListTile(
-                  title: Text('${d['orderId']} • ₹${d['totalAmount']}'),
-                  subtitle: Text('Status: ${d['status']} | ${d['customerName']}'),
-                ),
-              );
-            },
-          );
-        },
-      ),
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Selected Items', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              const Divider(),
+              ...widget.cart.entries.map((e) {
+                final item = e.value;
+                final q = item['qty'] as int;
+                final p = item['price'] as int;
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('${item['name']} x$q', style: const TextStyle(fontWeight: FontWeight.w600)),
+                      Text('₹${p * q}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                );
+              }),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Delivery Details', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              const SizedBox(height: 10),
+              TextField(controller: _nameCtrl, decoration: const InputDecoration(labelText: 'Name *', isDense: true)),
+              const SizedBox(height: 8),
+              TextField(controller: _phoneCtrl, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'Mobile *', isDense: true)),
+              const SizedBox(height: 8),
+              TextField(controller: _addrCtrl, decoration: const InputDecoration(labelText: 'Table No. / Address', isDense: true)),
+              const SizedBox(height: 12),
+              const Text('Payment Mode', style: TextStyle(fontWeight: FontWeight.bold)),
+              RadioListTile<String>(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                activeColor: const Color(0xFFFC8019),
+                title: const Text('Cash on Delivery (COD)'),
+                value: 'Cash on Delivery',
+                groupValue: _paymentMode,
+                onChanged: (v) => setState(() => _paymentMode = v!),
+              ),
+              RadioListTile<String>(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                activeColor: const Color(0xFFFC8019),
+                title: const Text('Online UPI / QR (Scan & Pay)'),
+                value: 'Online UPI',
+                groupValue: _paymentMode,
+                onChanged: (v) => setState(() => _paymentMode = v!),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('To Pay:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              Text('₹$_total', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: Color(0xFFFC8019))),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFFFC8019),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+          onPressed: _isOrdering ? null : _confirmOrder,
+          child: _isOrdering
+              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+              : Text('CONFIRM ORDER • ₹$_total', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        ),
+      ],
     );
   }
 }
@@ -590,111 +586,24 @@ class OrdersTrackScreen extends StatelessWidget {
 class AdminDashboardScreen extends StatelessWidget {
   const AdminDashboardScreen({super.key});
 
-  void updateOrderStatus(String docId, String nextStatus) {
-    FirebaseFirestore.instance.collection('orders').doc(docId).update({'status': nextStatus});
-  }
-
-  void openAddDishDialog(BuildContext context) {
-    final nameCtrl = TextEditingController();
-    final priceCtrl = TextEditingController();
-    String category = 'Sabzi';
-
-    showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Add Pure Veg Dish'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Dish Name')),
-              TextField(controller: priceCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Price (₹)')),
-              const SizedBox(height: 10),
-              DropdownButton<String>(
-                value: category,
-                isExpanded: true,
-                items: ['Sabzi', 'Chawal', 'Roti / Paratha', 'Papad', 'Chai', 'Pey Padarth']
-                    .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                    .toList(),
-                onChanged: (v) {
-                  if (v != null) setDialogState(() => category = v);
-                },
-              )
-            ],
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFC8019)),
-              onPressed: () {
-                if (nameCtrl.text.trim().isNotEmpty && priceCtrl.text.trim().isNotEmpty) {
-                  FirebaseFirestore.instance.collection('menu').add({
-                    'name': nameCtrl.text.trim(),
-                    'price': int.tryParse(priceCtrl.text.trim()) ?? 100,
-                    'category': category,
-                  });
-                  Navigator.pop(ctx);
-                }
-              },
-              child: const Text('Save', style: TextStyle(color: Colors.white)),
-            )
-          ],
-        ),
-      ),
-    );
-  }
-
-  void openEditPriceDialog(BuildContext context, String docId, String name, int price) {
-    final priceCtrl = TextEditingController(text: '$price');
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Edit Price: $name'),
-        content: TextField(
-          controller: priceCtrl,
-          keyboardType: TextInputType.number,
-          decoration: const InputDecoration(labelText: 'Naya Price (₹)', border: OutlineInputBorder()),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFC8019)),
-            onPressed: () {
-              final newP = int.tryParse(priceCtrl.text.trim());
-              if (newP != null) {
-                FirebaseFirestore.instance.collection('menu').doc(docId).update({'price': newP});
-                Navigator.pop(ctx);
-              }
-            },
-            child: const Text('Update', style: TextStyle(color: Colors.white)),
-          )
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
         appBar: AppBar(
-          backgroundColor: const Color(0xFFFC8019),
-          title: const Text('Admin Panel', style: TextStyle(color: Colors.white)),
+          backgroundColor: const Color(0xFF282C3F),
+          foregroundColor: Colors.white,
+          title: const Text('Admin Dashboard'),
           bottom: const TabBar(
-            indicatorColor: Colors.white,
-            labelColor: Colors.white,
+            indicatorColor: Color(0xFFFC8019),
+            labelColor: Color(0xFFFC8019),
+            unselectedLabelColor: Colors.white70,
             tabs: [
               Tab(text: 'Orders'),
-              Tab(text: 'Menu Rates'),
+              Tab(text: 'Menu'),
             ],
           ),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.add, color: Colors.white),
-              onPressed: () => openAddDishDialog(context),
-            )
-          ],
         ),
         body: TabBarView(
           children: [
@@ -702,81 +611,62 @@ class AdminDashboardScreen extends StatelessWidget {
               stream: FirebaseFirestore.instance.collection('orders').orderBy('createdAt', descending: true).snapshots(),
               builder: (context, snapshot) {
                 if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-                final allOrders = snapshot.data!.docs;
-                if (allOrders.isEmpty) return const Center(child: Text('Abhi koi order nahi hai.'));
+                final orders = snapshot.data!.docs;
+                if (orders.isEmpty) return const Center(child: Text('Abhi koi order nahi hai'));
 
                 final now = DateTime.now();
-                final startOfToday = DateTime(now.year, now.month, now.day);
-                int todaySales = 0;
-                int todayOrdersCount = 0;
-                for (var d in allOrders) {
+                final today = DateTime(now.year, now.month, now.day);
+                int todayTotal = 0;
+                int count = 0;
+
+                for (var d in orders) {
                   final data = d.data() as Map<String, dynamic>;
                   final ts = data['createdAt'] as Timestamp?;
-                  if (ts != null && ts.toDate().isAfter(startOfToday)) {
-                    todayOrdersCount++;
-                    todaySales += ((data['total'] ?? 0) as num).toInt();
+                  if (ts != null && ts.toDate().isAfter(today)) {
+                    count++;
+                    todayTotal += ((data['total'] ?? 0) as num).toInt();
                   }
                 }
 
                 return Column(
                   children: [
                     Container(
-                      margin: const EdgeInsets.all(10),
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFEBEE),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFFC8019).withOpacity(0.3)),
-                      ),
+                      margin: const EdgeInsets.all(12),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(color: const Color(0xFFFFF4EC), borderRadius: BorderRadius.circular(10)),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('Aaj Ka Hissab (Today)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFFFC8019))),
-                              const SizedBox(height: 2),
-                              Text('$todayOrdersCount Orders • ₹$todaySales Total', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                            ],
-                          ),
-                          ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: Colors.red, elevation: 0),
-                            icon: const Icon(Icons.delete_sweep, size: 18),
-                            label: const Text('Delete Old', style: TextStyle(fontSize: 12)),
+                          Text('Aaj: $count Orders | ₹$todayTotal', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFFC8019))),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: Colors.red),
                             onPressed: () async {
                               final batch = FirebaseFirestore.instance.batch();
-                              int count = 0;
-                              for (var d in allOrders) {
+                              for (var d in orders) {
                                 final data = d.data() as Map<String, dynamic>;
                                 if (data['status'] == 'Delivered' || data['status'] == 'Cancelled') {
                                   batch.delete(d.reference);
-                                  count++;
                                 }
                               }
-                              if (count > 0) {
-                                await batch.commit();
-                                if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$count delivered/cancelled orders delete ho gaye.')));
-                              } else {
-                                if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Koi purana delivered order nahi mila.')));
-                              }
+                              await batch.commit();
                             },
-                          ),
+                            child: const Text('Delete Old'),
+                          )
                         ],
                       ),
                     ),
                     Expanded(
                       child: ListView.separated(
                         padding: const EdgeInsets.all(12),
-                        itemCount: allOrders.length,
+                        itemCount: orders.length,
                         separatorBuilder: (_, __) => const SizedBox(height: 8),
-                        itemBuilder: (context, index) {
-                          final doc = allOrders[index];
-                          final data = doc.data() as Map<String, dynamic>;
-                          final items = (data['items'] as List?) ?? [];
+                        itemBuilder: (context, idx) {
+                          final doc = orders[idx];
+                          final d = doc.data() as Map<String, dynamic>;
+                          final items = (d['items'] as List?) ?? [];
                           final itemsText = items.map((i) => "${i['name']} x${i['qty']}").join(', ');
 
                           return Card(
-                            elevation: 2,
                             child: Padding(
                               padding: const EdgeInsets.all(12),
                               child: Column(
@@ -785,33 +675,26 @@ class AdminDashboardScreen extends StatelessWidget {
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Text('${data['orderId'] ?? ''} • ${data['customerName'] ?? ''}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                                      Text('${d['orderId'] ?? ''} • ${d['customerName'] ?? ''}', style: const TextStyle(fontWeight: FontWeight.bold)),
                                       PopupMenuButton<String>(
-                                        icon: const Icon(Icons.more_vert),
-                                        onSelected: (val) => updateOrderStatus(doc.id, val),
-                                        itemBuilder: (_) => [
-                                          'Pending',
-                                          'Preparing',
-                                          'Ready / Out',
-                                          'Delivered',
-                                          'Cancelled',
-                                        ].map((s) => PopupMenuItem(value: s, child: Text(s))).toList(),
+                                        onSelected: (val) => FirebaseFirestore.instance.collection('orders').doc(doc.id).update({'status': val}),
+                                        itemBuilder: (_) => ['Pending', 'Preparing', 'Ready / Out', 'Delivered', 'Cancelled']
+                                            .map((s) => PopupMenuItem(value: s, child: Text(s)))
+                                            .toList(),
                                       ),
                                     ],
                                   ),
-                                  Text('Phone: ${data['phone'] ?? 'N/A'}', style: const TextStyle(color: Colors.black87, fontSize: 13)),
-                                  if ((data['address'] ?? '').toString().isNotEmpty)
-                                    Text('Note/Table: ${data['address']}', style: const TextStyle(color: Colors.black54, fontSize: 13)),
+                                  Text('Mobile: ${d['phone'] ?? ''}'),
+                                  if ((d['address'] ?? '').isNotEmpty) Text('Table/Note: ${d['address']}'),
+                                  Text('Payment: ${d['paymentMethod'] ?? 'COD'}', style: const TextStyle(fontWeight: FontWeight.bold)),
                                   const Divider(),
-                                  const Text('Ordered Items:', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.brown, fontSize: 12)),
-                                  const SizedBox(height: 2),
-                                  Text(itemsText.isEmpty ? 'Purana order (Item list nahi thi)' : itemsText, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                                  Text('Items: ${itemsText.isEmpty ? "Purana order" : itemsText}', style: const TextStyle(fontWeight: FontWeight.bold)),
                                   const Divider(),
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Text('Status: ${data['status'] ?? 'Pending'}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
-                                      Text('Total: ₹${data['total'] ?? 0}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFFFC8019))),
+                                      Text('Status: ${d['status'] ?? 'Pending'}', style: const TextStyle(color: Color(0xFF60B244), fontWeight: FontWeight.bold)),
+                                      Text('Total: ₹${d['total'] ?? 0}', style: const TextStyle(color: Color(0xFFFC8019), fontWeight: FontWeight.bold, fontSize: 16)),
                                     ],
                                   ),
                                 ],
@@ -830,34 +713,18 @@ class AdminDashboardScreen extends StatelessWidget {
               builder: (context, snapshot) {
                 if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
                 final items = snapshot.data!.docs;
-                if (items.isEmpty) return const Center(child: Text('Menu me items nahi hain.'));
-
                 return ListView.separated(
                   padding: const EdgeInsets.all(12),
                   itemCount: items.length,
                   separatorBuilder: (_, __) => const Divider(),
-                  itemBuilder: (context, index) {
-                    final doc = items[index];
-                    final data = doc.data() as Map<String, dynamic>;
-                    final name = data['name'] ?? '';
-                    final price = (data['price'] ?? 0) is int ? data['price'] : int.tryParse(data['price'].toString()) ?? 0;
-
+                  itemBuilder: (context, idx) {
+                    final d = items[idx].data() as Map<String, dynamic>;
                     return ListTile(
-                      leading: const Icon(Icons.circle, color: Color(0xFF0F8A65), size: 14),
-                      title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                      subtitle: Text('₹$price | ${data['category'] ?? ''}'),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.edit, color: Colors.blue),
-                            onPressed: () => openEditPriceDialog(context, doc.id, name, price),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.red),
-                            onPressed: () => FirebaseFirestore.instance.collection('menu').doc(doc.id).delete(),
-                          ),
-                        ],
+                      title: Text(d['name'] ?? ''),
+                      subtitle: Text('₹${d['price']} | ${d['category'] ?? ''}'),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        onPressed: () => FirebaseFirestore.instance.collection('menu').doc(items[idx].id).delete(),
                       ),
                     );
                   },
