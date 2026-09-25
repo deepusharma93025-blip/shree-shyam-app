@@ -1,4 +1,4 @@
-import 'package:geolocator/geolocator.dart';
+
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
