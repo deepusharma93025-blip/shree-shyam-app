@@ -1,3 +1,5 @@
+import 'package:geolocator/geolocator.dart';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -733,6 +735,125 @@ class AdminDashboardScreen extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+
+// --- LIVE TRACKING & ETA HELPER ---
+double calculateDistanceKm(double lat1, double lon1, double lat2, double lon2) {
+  var p = 0.017453292519943295;
+  var c = math.cos;
+  var a = 0.5 - c((lat2 - lat1) * p) / 2 +
+      c(lat1 * p) * c(lat2 * p) * (1 - c((lon2 - lon1) * p)) / 2;
+  return 12742 * math.asin(math.sqrt(a));
+}
+
+int calculateETA(double distanceKm) {
+  // Average city delivery speed = 25 km/h + 5 mins buffer
+  int mins = ((distanceKm / 25) * 60).round() + 5;
+  return mins < 3 ? 3 : mins;
+}
+
+// --- CUSTOMER LIVE TRACKING SCREEN ---
+class CustomerTrackingScreen extends StatelessWidget {
+  final String orderDocId;
+  const CustomerTrackingScreen({super.key, required this.orderDocId});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Live Delivery Tracking'),
+        backgroundColor: const Color(0xFFFC8019),
+        foregroundColor: Colors.white,
+      ),
+      body: StreamBuilder<DocumentSnapshot>(
+        stream: FirebaseFirestore.instance.collection('orders').doc(orderDocId).snapshots(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+          final data = snapshot.data!.data() as Map<String, dynamic>?;
+          if (data == null) return const Center(child: Text('Order nahi mila'));
+
+          final status = data['status'] ?? 'Pending';
+          final riderLat = data['riderLat'] as double?;
+          final riderLng = data['riderLng'] as double?;
+          final dropLat = data['dropLat'] as double? ?? 26.3333; // Default reference
+          final dropLng = data['dropLng'] as double? ?? 77.5833;
+
+          int etaMins = 20;
+          if (riderLat != null && riderLng != null) {
+            double dist = calculateDistanceKm(riderLat, riderLng, dropLat, dropLng);
+            etaMins = calculateETA(dist);
+          }
+
+          return Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF4EC),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFFC8019)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.timer_outlined, size: 40, color: Color(0xFFFC8019)),
+                      const SizedBox(width: 14),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Estimated Delivery Time', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                          Text(
+                            status == 'Delivered' ? 'Delivered' : '$etaMins Mins',
+                            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFFFC8019)),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text('Order Timeline', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 14),
+                _timelineTile('Order Placed', true),
+                _timelineTile('Preparing in Kitchen', status == 'Preparing' || status == 'Out for Delivery' || status == 'Delivered'),
+                _timelineTile('Out for Delivery (Rider on the way)', status == 'Out for Delivery' || status == 'Delivered'),
+                _timelineTile('Delivered', status == 'Delivered'),
+                const Spacer(),
+                if (status == 'Out for Delivery')
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(10)),
+                    child: Row(
+                      children: const [
+                        Icon(Icons.delivery_dining, color: Color(0xFF60B244), size: 30),
+                        SizedBox(width: 10),
+                        Expanded(child: Text('Rider aapke ghar ki taraf live GPS tracking ke sath aa raha hai.', style: TextStyle(fontWeight: FontWeight.bold))),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _timelineTile(String title, bool isDone) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        children: [
+          Icon(isDone ? Icons.check_circle : Icons.radio_button_unchecked, color: isDone ? const Color(0xFF60B244) : Colors.grey),
+          const SizedBox(width: 12),
+          Text(title, style: TextStyle(fontWeight: isDone ? FontWeight.bold : FontWeight.normal, fontSize: 15)),
+        ],
       ),
     );
   }
