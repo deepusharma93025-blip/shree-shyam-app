@@ -504,7 +504,7 @@ class _CartScreenState extends State<CartScreen> {
               icon: const Icon(Icons.location_on, color: Color(0xFFFC8019)),
               label: const Text('Track Live Delivery', style: TextStyle(color: Color(0xFFFC8019), fontWeight: FontWeight.bold)),
               onPressed: () {
-                Navigator.push(context, MaterialPageRoute(builder: (_) => CustomerTrackingScreen(orderDocId: docRef.id)));
+                Navigator.push(context, MaterialPageRoute(builder: (_) => CustomerTrackingScreen(orderDocId: orderId)));
               },
             ),
             ElevatedButton(

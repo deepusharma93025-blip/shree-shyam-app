@@ -13,16 +13,24 @@ class CustomerTrackingScreen extends StatelessWidget {
         backgroundColor: const Color(0xFFFC8019),
         foregroundColor: Colors.white,
       ),
-      body: StreamBuilder<DocumentSnapshot>(
-        stream: FirebaseFirestore.instance.collection('orders').doc(orderDocId).snapshots(),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('orders')
+            .where('orderId', isEqualTo: orderDocId)
+            .snapshots(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-          final data = snapshot.data!.data() as Map<String, dynamic>?;
-          if (data == null) return const Center(child: Text('Order nahi mila'));
+          if (snapshot.data!.docs.isEmpty) {
+            return const Center(child: Text('Order search ho raha hai...'));
+          }
 
+          final data = snapshot.data!.docs.first.data() as Map<String, dynamic>;
           final status = data['status'] ?? 'Pending';
           final eta = data['etaMinutes'] ?? (status == 'Out for Delivery' ? 12 : 25);
-          final riderMsg = data['riderStatus'] ?? (status == 'Out for Delivery' ? 'Rider raste me hai, jald pahunchega' : 'Order prepare ho raha hai');
+          final riderMsg = data['riderStatus'] ??
+              (status == 'Out for Delivery'
+                  ? 'Rider aapke ghar ke raste par hai!'
+                  : 'Kitchen mein aapka fresh khana prepare ho raha hai');
 
           return Padding(
             padding: const EdgeInsets.all(16.0),
@@ -39,7 +47,7 @@ class CustomerTrackingScreen extends StatelessWidget {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.timer_outlined, size: 42, color: Color(0xFFFC8019)),
+                      const Icon(Icons.timer_outlined, size: 40, color: Color(0xFFFC8019)),
                       const SizedBox(width: 14),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -55,12 +63,12 @@ class CustomerTrackingScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 20),
-                const Text('Live Delivery Status', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const Text('Live Delivery Progress', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 14),
-                _tile('Order Placed (Kitchen ko mil gaya)', true),
-                _tile('Preparing your Fresh Food', status == 'Preparing' || status == 'Out for Delivery' || status == 'Delivered'),
-                _tile('Rider Picked & Out for Delivery', status == 'Out for Delivery' || status == 'Delivered'),
-                _tile('Order Delivered Safely', status == 'Delivered'),
+                _stepTile('Order Received in Kitchen', true),
+                _stepTile('Cooking Fresh Food', status == 'Preparing' || status == 'Out for Delivery' || status == 'Delivered'),
+                _stepTile('Rider Picked & On the Way', status == 'Out for Delivery' || status == 'Delivered'),
+                _stepTile('Delivered Safely to Home', status == 'Delivered'),
                 const Spacer(),
                 Container(
                   padding: const EdgeInsets.all(14),
@@ -72,7 +80,7 @@ class CustomerTrackingScreen extends StatelessWidget {
                       Expanded(
                         child: Text(
                           riderMsg,
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87),
                         ),
                       ),
                     ],
@@ -86,14 +94,18 @@ class CustomerTrackingScreen extends StatelessWidget {
     );
   }
 
-  Widget _tile(String title, bool isDone) {
+  Widget _stepTile(String title, bool isDone) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
         children: [
-          Icon(isDone ? Icons.check_circle : Icons.radio_button_unchecked, color: isDone ? const Color(0xFF60B244) : Colors.grey),
+          Icon(isDone ? Icons.check_circle : Icons.radio_button_unchecked,
+              color: isDone ? const Color(0xFF60B244) : Colors.grey),
           const SizedBox(width: 12),
-          Text(title, style: TextStyle(fontWeight: isDone ? FontWeight.bold : FontWeight.normal, fontSize: 15)),
+          Text(title,
+              style: TextStyle(
+                  fontWeight: isDone ? FontWeight.bold : FontWeight.normal,
+                  fontSize: 15)),
         ],
       ),
     );
