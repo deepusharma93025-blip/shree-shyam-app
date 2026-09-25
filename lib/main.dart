@@ -22,10 +22,10 @@ class RestaurantApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
-        primaryColor: const Color(0xFFD32F2F),
+        primaryColor: const Color(0xFFFC8019),
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFFD32F2F),
-          primary: const Color(0xFFD32F2F),
+          seedColor: const Color(0xFFFC8019), primary: const Color(0xFFFC8019), secondary: const Color(0xFF60B244),
+          primary: const Color(0xFFFC8019),
         ),
         scaffoldBackgroundColor: const Color(0xFFF6F7F9),
       ),
@@ -173,7 +173,7 @@ class _MenuScreenState extends State<MenuScreen> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFD32F2F)),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFC8019)),
             onPressed: () {
               if (pinController.text.trim() == '1234') {
                 Navigator.pop(ctx);
@@ -196,11 +196,11 @@ class _MenuScreenState extends State<MenuScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final totalCartCount = widget.cart.values.fold(0, (sum, item) => sum + (item['qty'] as int));
+    final totalCartCount = cart.values.fold(0, (sum, item) => sum + (item['qty'] as int));
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFFD32F2F),
+        backgroundColor: const Color(0xFFFC8019),
         title: const Text(
           'Jai Shree Shyam Restaurant',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
@@ -236,7 +236,7 @@ class _MenuScreenState extends State<MenuScreen> {
                         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                       ),
                     ),
-                    selectedColor: const Color(0xFFD32F2F),
+                    selectedColor: const Color(0xFFFC8019),
                     backgroundColor: const Color(0xFFF1F3F5),
                     onSelected: (val) => setState(() => selectedCategory = cat),
                   ),
@@ -249,7 +249,7 @@ class _MenuScreenState extends State<MenuScreen> {
               stream: FirebaseFirestore.instance.collection('menu').snapshots(),
               builder: (context, snapshot) {
                 if (!snapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator(color: Color(0xFFD32F2F)));
+                  return const Center(child: CircularProgressIndicator(color: Color(0xFFFC8019)));
                 }
 
                 final docs = snapshot.data!.docs;
@@ -269,7 +269,7 @@ class _MenuScreenState extends State<MenuScreen> {
                     final name = data['name'] ?? 'Item';
                     final price = (data['price'] ?? 0) is int ? data['price'] : int.tryParse(data['price'].toString()) ?? 0;
                     final cat = data['category'] ?? '';
-                    final count = widget.cart[doc.id]?['qty'] ?? 0;
+                    final count = cart[doc.id]?['qty'] ?? 0;
 
                     return Container(
                       decoration: BoxDecoration(
@@ -297,13 +297,13 @@ class _MenuScreenState extends State<MenuScreen> {
                               children: [
                                 Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                                 const SizedBox(height: 4),
-                                Text('₹$price  •  $cat', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFD32F2F))),
+                                Text('₹$price  •  $cat', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFFC8019))),
                               ],
                             ),
                           ),
                           count == 0
                               ? ElevatedButton(
-                                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFD32F2F)),
+                                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFC8019)),
                                   onPressed: () => widget.onAdd(doc.id, name, price),
                                   child: const Text('ADD', style: TextStyle(color: Colors.white)),
                                 )
@@ -311,12 +311,12 @@ class _MenuScreenState extends State<MenuScreen> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     IconButton(
-                                      icon: const Icon(Icons.remove_circle, color: Color(0xFFD32F2F)),
+                                      icon: const Icon(Icons.remove_circle, color: Color(0xFFFC8019)),
                                       onPressed: () => widget.onRemove(doc.id),
                                     ),
                                     Text('$count', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                                     IconButton(
-                                      icon: const Icon(Icons.add_circle, color: Color(0xFFD32F2F)),
+                                      icon: const Icon(Icons.add_circle, color: Color(0xFFFC8019)),
                                       onPressed: () => widget.onAdd(doc.id, name, price),
                                     ),
                                   ],
@@ -337,7 +337,7 @@ class _MenuScreenState extends State<MenuScreen> {
               color: Colors.white,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFD32F2F),
+                  backgroundColor: const Color(0xFFFC8019),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
                 onPressed: widget.onGoToCart,
@@ -378,7 +378,7 @@ class _CartScreenState extends State<CartScreen> {
   bool isPlacing = false;
 
   int calculateTotal() {
-    return widget.cart.values.fold(0, (sum, item) => sum + ((item['price'] as int) * (item['qty'] as int)));
+    return cart.values.fold(0, (sum, item) => sum + ((item['price'] as int) * (item['qty'] as int)));
   }
 
   void placeOrder() async {
@@ -389,7 +389,7 @@ class _CartScreenState extends State<CartScreen> {
     setState(() => isPlacing = true);
 
     try {
-      final itemsList = widget.cart.values.map((e) => {
+      final itemsList = cart.values.map((e) => {
         'name': e['name'],
         'price': e['price'],
         'qty': e['qty'],
@@ -419,9 +419,9 @@ class _CartScreenState extends State<CartScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.cart.isEmpty) {
+    if (cart.isEmpty) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Your Cart', style: TextStyle(color: Colors.white)), backgroundColor: const Color(0xFFD32F2F)),
+        appBar: AppBar(title: const Text('Your Cart', style: TextStyle(color: Colors.white)), backgroundColor: const Color(0xFFFC8019)),
         body: const Center(child: Text('Aapka cart khali hai.')),
       );
     }
@@ -429,12 +429,12 @@ class _CartScreenState extends State<CartScreen> {
     final total = calculateTotal();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Checkout Cart', style: TextStyle(color: Colors.white)), backgroundColor: const Color(0xFFD32F2F)),
+      appBar: AppBar(title: const Text('Checkout Cart', style: TextStyle(color: Colors.white)), backgroundColor: const Color(0xFFFC8019)),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            ...widget.cart.values.map((item) {
+            ...cart.values.map((item) {
               return Card(
                 child: ListTile(
                   title: Text(item['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -457,13 +457,13 @@ class _CartScreenState extends State<CartScreen> {
             const SizedBox(height: 10),
             TextField(controller: addressCtrl, decoration: const InputDecoration(labelText: 'Address / Table Number', border: OutlineInputBorder())),
             const SizedBox(height: 20),
-            Text('Total: ₹$total', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFFD32F2F))),
+            Text('Total: ₹$total', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFFFC8019))),
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
               height: 48,
               child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFD32F2F)),
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFC8019)),
                 onPressed: isPlacing ? null : placeOrder,
                 child: isPlacing
                     ? const CircularProgressIndicator(color: Colors.white)
@@ -517,7 +517,7 @@ class _TableBookingScreenState extends State<TableBookingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Table Booking', style: TextStyle(color: Colors.white)), backgroundColor: const Color(0xFFD32F2F)),
+      appBar: AppBar(title: const Text('Table Booking', style: TextStyle(color: Colors.white)), backgroundColor: const Color(0xFFFC8019)),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -542,7 +542,7 @@ class _TableBookingScreenState extends State<TableBookingScreen> {
               width: double.infinity,
               height: 48,
               child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFD32F2F)),
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFC8019)),
                 onPressed: isBooking ? null : bookTable,
                 child: const Text('Book Table', style: TextStyle(color: Colors.white, fontSize: 16)),
               ),
@@ -560,7 +560,7 @@ class OrdersTrackScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Live Orders', style: TextStyle(color: Colors.white)), backgroundColor: const Color(0xFFD32F2F)),
+      appBar: AppBar(title: const Text('Live Orders', style: TextStyle(color: Colors.white)), backgroundColor: const Color(0xFFFC8019)),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance.collection('orders').orderBy('createdAt', descending: true).snapshots(),
         builder: (context, snapshot) {
@@ -625,7 +625,7 @@ class AdminDashboardScreen extends StatelessWidget {
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFD32F2F)),
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFC8019)),
               onPressed: () {
                 if (nameCtrl.text.trim().isNotEmpty && priceCtrl.text.trim().isNotEmpty) {
                   FirebaseFirestore.instance.collection('menu').add({
@@ -658,7 +658,7 @@ class AdminDashboardScreen extends StatelessWidget {
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFD32F2F)),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFC8019)),
             onPressed: () {
               final newP = int.tryParse(priceCtrl.text.trim());
               if (newP != null) {
@@ -679,7 +679,7 @@ class AdminDashboardScreen extends StatelessWidget {
       length: 2,
       child: Scaffold(
         appBar: AppBar(
-          backgroundColor: const Color(0xFFD32F2F),
+          backgroundColor: const Color(0xFFFC8019),
           title: const Text('Admin Panel', style: TextStyle(color: Colors.white)),
           bottom: const TabBar(
             indicatorColor: Colors.white,
@@ -726,7 +726,7 @@ class AdminDashboardScreen extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: const Color(0xFFFFEBEE),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFD32F2F).withOpacity(0.3)),
+                        border: Border.all(color: const Color(0xFFFC8019).withOpacity(0.3)),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -734,7 +734,7 @@ class AdminDashboardScreen extends StatelessWidget {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('Aaj Ka Hissab (Today)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFFD32F2F))),
+                              const Text('Aaj Ka Hissab (Today)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFFFC8019))),
                               const SizedBox(height: 2),
                               Text('$todayOrdersCount Orders • ₹$todaySales Total', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                             ],
@@ -811,7 +811,7 @@ class AdminDashboardScreen extends StatelessWidget {
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text('Status: ${data['status'] ?? 'Pending'}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
-                                      Text('Total: ₹${data['total'] ?? 0}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFFD32F2F))),
+                                      Text('Total: ₹${data['total'] ?? 0}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFFFC8019))),
                                     ],
                                   ),
                                 ],
