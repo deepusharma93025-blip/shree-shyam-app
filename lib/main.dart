@@ -370,6 +370,8 @@ class CartScreen extends StatefulWidget {
 }
 
 class _CartScreenState extends State<CartScreen> {
+  String _paymentMethod = 'Cash on Delivery'; // COD or Online UPI
+
   final nameCtrl = TextEditingController();
   final phoneCtrl = TextEditingController();
   final addressCtrl = TextEditingController();
