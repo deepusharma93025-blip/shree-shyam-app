@@ -75,6 +75,38 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
   int get _cartTotal => _cart.values.fold(0, (sum, item) => sum + ((item['price'] as int) * (item['qty'] as int)));
   int get _cartCount => _cart.values.fold(0, (sum, item) => sum + (item['qty'] as int));
 
+
+  void _openRiderLogin(BuildContext context) {
+    final pinCtrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Rider Delivery Portal (PIN: 5678)'),
+        content: TextField(
+          controller: pinCtrl,
+          keyboardType: TextInputType.number,
+          obscureText: true,
+          decoration: const InputDecoration(hintText: 'Enter Rider PIN'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF60B244), foregroundColor: Colors.white),
+            onPressed: () {
+              if (pinCtrl.text.trim() == '5678') {
+                Navigator.pop(ctx);
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const RiderDashboardScreen()));
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Invalid Rider PIN!')));
+              }
+            },
+            child: const Text('Login'),
+          )
+        ],
+      ),
+    );
+  }
+
   void _openAdminLogin(BuildContext context) {
     final pinCtrl = TextEditingController();
     showDialog(
