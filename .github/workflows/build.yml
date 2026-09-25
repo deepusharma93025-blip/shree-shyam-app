@@ -23,12 +23,8 @@ jobs:
           flutter-version: '3.19.0'
           channel: 'stable'
 
-      - name: Inject Full Code and Logo
+      - name: Inject Custom Restaurant Logo
         run: |
-          # 1. Download full verified main.dart directly on GitHub Runner
-          curl -sL "https://raw.githubusercontent.com/Deepusharma93025-blip/shree-shyam-app/bd92202b8813fa2a4f475f463d1a890473950efd/lib/main.dart" -o lib/main.dart
-          
-          # 2. Inject Custom Logo
           if [ -f "app_logo.png" ]; then
             sudo apt-get update && sudo apt-get install -y imagemagick
             for res in "mipmap-mdpi 48x48" "mipmap-hdpi 72x72" "mipmap-xhdpi 96x96" "mipmap-xxhdpi 144x144" "mipmap-xxxhdpi 192x192"; do
