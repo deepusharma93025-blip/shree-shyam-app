@@ -36,6 +36,7 @@ class RiderDashboardScreen extends StatelessWidget {
               final address = d['address'] ?? 'No Address';
               final status = d['status'] ?? 'Pending';
               final total = d['total'] ?? 0;
+              final eta = d['etaMinutes'] ?? 15;
 
               return Card(
                 elevation: 3,
@@ -44,10 +45,35 @@ class RiderDashboardScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('#$orderId - $name', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                      Text('Address: $address'),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('#$orderId - $name', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: status == 'Out for Delivery' ? Colors.orange.shade100 : Colors.green.shade100,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              status,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: status == 'Out for Delivery' ? Colors.orange.shade800 : Colors.green.shade800,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text('Address: $address', style: const TextStyle(fontWeight: FontWeight.w500)),
                       Text('Phone: $phone', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey)),
                       Text('Total: ₹$total | ${d["paymentMethod"] ?? "COD"}', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFFC8019))),
+                      if (status == 'Out for Delivery')
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          child: Text('ETA Customer ko dikh raha hai: $eta Mins', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+                        ),
                       const SizedBox(height: 10),
                       Row(
                         children: [
@@ -55,7 +81,13 @@ class RiderDashboardScreen extends StatelessWidget {
                             Expanded(
                               child: ElevatedButton(
                                 style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFC8019), foregroundColor: Colors.white),
-                                onPressed: () => FirebaseFirestore.instance.collection('orders').doc(doc.id).update({'status': 'Out for Delivery'}),
+                                onPressed: () {
+                                  FirebaseFirestore.instance.collection('orders').doc(doc.id).update({
+                                    'status': 'Out for Delivery',
+                                    'etaMinutes': 12,
+                                    'riderStatus': 'Rider is on the way with your food',
+                                  });
+                                },
                                 child: const Text('Pick Delivery'),
                               ),
                             ),
@@ -63,7 +95,13 @@ class RiderDashboardScreen extends StatelessWidget {
                           Expanded(
                             child: ElevatedButton(
                               style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF60B244), foregroundColor: Colors.white),
-                              onPressed: () => FirebaseFirestore.instance.collection('orders').doc(doc.id).update({'status': 'Delivered'}),
+                              onPressed: () {
+                                FirebaseFirestore.instance.collection('orders').doc(doc.id).update({
+                                  'status': 'Delivered',
+                                  'etaMinutes': 0,
+                                  'riderStatus': 'Delivered successfully',
+                                });
+                              },
                               child: const Text('Delivered ✅'),
                             ),
                           ),

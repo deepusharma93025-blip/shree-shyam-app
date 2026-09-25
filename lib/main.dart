@@ -1,3 +1,4 @@
+import 'tracking_screen.dart';
 import 'rider_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -499,6 +500,13 @@ class _CartScreenState extends State<CartScreen> {
             ),
           ),
           actions: [
+            OutlinedButton.icon(
+              icon: const Icon(Icons.location_on, color: Color(0xFFFC8019)),
+              label: const Text('Track Live Delivery', style: TextStyle(color: Color(0xFFFC8019), fontWeight: FontWeight.bold)),
+              onPressed: () {
+                Navigator.push(context, MaterialPageRoute(builder: (_) => CustomerTrackingScreen(orderDocId: docRef.id)));
+              },
+            ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFC8019), foregroundColor: Colors.white),
               onPressed: () {
