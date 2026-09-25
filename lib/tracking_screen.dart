@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 
 class CustomerTrackingScreen extends StatelessWidget {
   final String orderDocId;
@@ -38,13 +40,7 @@ class CustomerTrackingScreen extends StatelessWidget {
                   children: [
                     const Icon(Icons.receipt_long, size: 60, color: Colors.grey),
                     const SizedBox(height: 12),
-                    Text(
-                      'Order ID "#$cleanId" nahi mila.',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 6),
-                    const Text('Kripya sahi Order ID daalein (jaise SS-963714).', style: TextStyle(color: Colors.grey)),
+                    Text('Order ID "#$cleanId" nahi mila.', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   ],
                 ),
               ),
@@ -56,101 +52,163 @@ class CustomerTrackingScreen extends StatelessWidget {
           final status = data['status'] ?? 'Pending';
           final eta = data['etaMinutes'] ?? (status == 'Out for Delivery' ? 12 : 25);
           final riderMsg = data['riderStatus'] ??
-              (status == 'Out for Delivery'
-                  ? 'Rider aapke ghar ke raste par hai!'
-                  : 'Kitchen mein aapka fresh khana ban raha hai');
+              (status == 'Out for Delivery' ? 'Rider raste me hai, live location update ho rahi hai!' : 'Kitchen me prepare ho raha hai');
 
-          final isCooking = status == 'Preparing' || status == 'Out for Delivery' || status == 'Delivered';
-          final isOut = status == 'Out for Delivery' || status == 'Delivered';
-          final isDelivered = status == 'Delivered';
+          final double restaurantLat = (data['restLat'] ?? 26.1360) as double;
+          final double restaurantLng = (data['restLng'] ?? 77.6830) as double;
 
-          return Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFF4EC),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFFFC8019)),
+          final double riderLat = (data['riderLat'] ?? (restaurantLat + 0.0040)) as double;
+          final double riderLng = (data['riderLng'] ?? (restaurantLng + 0.0035)) as double;
+
+          final double customerLat = (data['custLat'] ?? (restaurantLat + 0.0090)) as double;
+          final double customerLng = (data['custLng'] ?? (restaurantLng + 0.0075)) as double;
+
+          final restaurantPoint = LatLng(restaurantLat, restaurantLng);
+          final riderPoint = LatLng(riderLat, riderLng);
+          final customerPoint = LatLng(customerLat, customerLng);
+
+          return Column(
+            children: [
+              Expanded(
+                flex: 4,
+                child: FlutterMap(
+                  options: MapOptions(
+                    initialCenter: status == 'Out for Delivery' ? riderPoint : restaurantPoint,
+                    initialZoom: 14.5,
                   ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.timer_outlined, size: 40, color: Color(0xFFFC8019)),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Order #$currentOrderId', style: const TextStyle(color: Colors.black54, fontSize: 13, fontWeight: FontWeight.bold)),
-                            Text(
-                              isDelivered ? 'Pahunch Gaya ✅' : '$eta Mins Mein Delivery',
-                              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFFFC8019)),
+                  children: [
+                    TileLayer(
+                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      userAgentPackageName: 'com.example.restaurant',
+                    ),
+                    PolylineLayer(
+                      polylines: [
+                        Polyline(
+                          points: [restaurantPoint, riderPoint, customerPoint],
+                          strokeWidth: 4.0,
+                          color: const Color(0xFFFC8019),
+                        ),
+                      ],
+                    ),
+                    MarkerLayer(
+                      markers: [
+                        Marker(
+                          point: restaurantPoint,
+                          width: 45,
+                          height: 45,
+                          child: const Icon(Icons.store, color: Colors.red, size: 36),
+                        ),
+                        if (status == 'Out for Delivery')
+                          Marker(
+                            point: riderPoint,
+                            width: 50,
+                            height: 50,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                                boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4)],
+                              ),
+                              child: const Icon(Icons.delivery_dining, color: Color(0xFFFC8019), size: 34),
                             ),
-                          ],
+                          ),
+                        Marker(
+                          point: customerPoint,
+                          width: 45,
+                          height: 45,
+                          child: const Icon(Icons.location_on, color: Color(0xFF60B244), size: 40),
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 20),
-                const Text('Live Delivery Progress', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 14),
-                _stepTile('Order Received in Kitchen', true),
-                _stepTile('Cooking Fresh Food', isCooking),
-                _stepTile('Rider Picked & On the Way', isOut),
-                _stepTile('Delivered Safely to Home', isDelivered),
-                const Spacer(),
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: isOut ? Colors.orange.shade50 : Colors.green.shade50,
-                    borderRadius: BorderRadius.circular(12),
+              ),
+              Expanded(
+                flex: 3,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                    boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, -3))],
                   ),
-                  child: Row(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.delivery_dining, color: isOut ? const Color(0xFFFC8019) : const Color(0xFF60B244), size: 36),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          riderMsg,
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87),
-                        ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Order #$currentOrderId', style: const TextStyle(color: Colors.black54, fontWeight: FontWeight.bold, fontSize: 13)),
+                              Text(
+                                status == 'Delivered' ? 'Pahunch Gaya ✅' : '$eta Mins Mein Delivery',
+                                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFFFC8019)),
+                              ),
+                            ],
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: status == 'Out for Delivery' ? Colors.orange.shade100 : Colors.green.shade100,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              status,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: status == 'Out for Delivery' ? Colors.orange.shade800 : Colors.green.shade800,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Divider(height: 18),
+                      Row(
+                        children: [
+                          Icon(
+                            status == 'Out for Delivery' ? Icons.directions_bike : Icons.restaurant,
+                            color: const Color(0xFF60B244),
+                            size: 28,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              riderMsg,
+                              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Spacer(),
+                      Row(
+                        children: [
+                          _mapLegend(Icons.store, Colors.red, 'Dukan'),
+                          const SizedBox(width: 12),
+                          _mapLegend(Icons.delivery_dining, const Color(0xFFFC8019), 'Rider'),
+                          const SizedBox(width: 12),
+                          _mapLegend(Icons.location_on, const Color(0xFF60B244), 'Customer'),
+                        ],
                       ),
                     ],
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           );
         },
       ),
     );
   }
 
-  Widget _stepTile(String title, bool isDone) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        children: [
-          Icon(
-            isDone ? Icons.check_circle : Icons.radio_button_unchecked,
-            color: isDone ? const Color(0xFF60B244) : Colors.grey,
-          ),
-          const SizedBox(width: 12),
-          Text(
-            title,
-            style: TextStyle(
-              fontWeight: isDone ? FontWeight.bold : FontWeight.normal,
-              fontSize: 15,
-              color: isDone ? Colors.black87 : Colors.grey,
-            ),
-          ),
-        ],
-      ),
+  Widget _mapLegend(IconData icon, Color color, String label) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: color),
+        const SizedBox(width: 4),
+        Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black54)),
+      ],
     );
   }
 }
